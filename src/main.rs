@@ -3,6 +3,8 @@ use log::info;
 use std::env;
 use env_logger::Env;
 
+const TEMPLATE_DIR: &str = include_str!("./templates/");
+
 
 #[tokio::main]
 async fn main() {
