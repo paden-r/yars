@@ -4,23 +4,32 @@ use warp::Reply;
 use warp::http::StatusCode;
 use mysql::*;
 use mysql::prelude::Queryable;
-use std::error::Error;
+use serde::Serialize;
 
-use warp::{Filter, Rejection};
+use warp::Rejection;
+use warp::reply::{json, with_status};
 
 type HttpResult<T> = std::result::Result<T, Rejection>;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize, Clone)]
 struct Post {
     post_id: u32,
     create_date: String,
     title: String
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize, Clone)]
 struct PostBody {
-    body_id: u32,
-    post_body: String,
+    post_id: u32,
+    create_date: String,
+    title: String,
+    bodytext: String
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize)]
+struct InitialLoadReturn {
+    initial_posts: Vec<Post>,
+    headliner: PostBody
 }
 
 
@@ -44,8 +53,12 @@ fn get_opts() -> OptsBuilder {
 pub async fn initial_load() -> HttpResult<impl Reply> {
     info!("Now: {}", Utc::now().naive_utc());
     let posts = get_posts().await;
-    println!("{:?}", posts);
-    Ok(StatusCode::OK)
+    let headliner_id = posts[0].post_id.clone();
+    let headliner = get_single_post(headliner_id).await;
+    let return_data = InitialLoadReturn{
+        initial_posts: vec![posts[0].clone(), posts[1].clone()], headliner
+    };
+    Ok(with_status(json(&return_data), StatusCode::OK))
 }
 
 
@@ -60,4 +73,19 @@ async fn get_posts() -> Vec<Post> {
         ).unwrap();
 
     selected_posts
+}
+
+
+async fn get_single_post(post_id: u32) -> PostBody {
+    let mut connection = Conn::new(get_opts()).unwrap();
+    let sql_statement = format!("CALL GetPostBody({});", post_id);
+    let mut single_post = connection
+        .query_map(
+            sql_statement,
+        |(post_id, create_date, title, bodytext)|{
+            PostBody{post_id, create_date, title, bodytext}
+        },
+        ).unwrap();
+
+    single_post.pop().unwrap()
 }

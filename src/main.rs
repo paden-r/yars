@@ -1,7 +1,9 @@
+use std::env;
+use log::info;
 use warp::Filter;
 use std::error::Error;
-use std::convert::Infallible;
 use clap::Parser;
+use env_logger::Env;
 
 mod web_handler;
 
@@ -15,14 +17,30 @@ struct Args {
 
 
 #[tokio::main]
-async fn main() -> std::result::Result<(), Box<dyn Error>>{
-    color_eyre::install()?;
+async fn main() -> std::result::Result<(), Box<dyn Error>> {
+    setup_logging()?;
     let args = Args::parse();
     start_server(args).await?;
     Ok(())
 }
 
-async fn start_server(args: Args) -> std::result::Result<(), Box<dyn Error>>{
+
+fn setup_logging() -> std::result::Result<(), Box<dyn Error>> {
+    let mut logger = env_logger::Builder::from_env(Env::default().default_filter_or("info"));
+    logger.target(env_logger::Target::Stdout);
+    logger.init();
+    match env::var("RUST_LOG") {
+        Ok(l) => {
+            info!("Log Level: {}", l.to_uppercase())
+        }
+        Err(_) => {
+            info!("Log Level: INFO")
+        }
+    }
+    Ok(())
+}
+
+async fn start_server(args: Args) -> std::result::Result<(), Box<dyn Error>> {
     let root_path = warp::path::end()
         .and(warp::get())
         .and_then(web_handler::initial_load);
