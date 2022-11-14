@@ -13,14 +13,14 @@ type HttpResult<T> = std::result::Result<T, Rejection>;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Clone)]
 struct Post {
-    post_id: u32,
+    post_id: u8,
     create_date: String,
     title: String
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Clone)]
 struct PostBody {
-    post_id: u32,
+    post_id: u8,
     create_date: String,
     title: String,
     bodytext: String
@@ -76,7 +76,7 @@ async fn get_posts() -> Vec<Post> {
 }
 
 
-async fn get_single_post(post_id: u32) -> PostBody {
+async fn get_single_post(post_id: u8) -> PostBody {
     let mut connection = Conn::new(get_opts()).unwrap();
     let sql_statement = format!("CALL GetPostBody({});", post_id);
     let mut single_post = connection

@@ -1,9 +1,6 @@
 PROJECT_NAME := yars
 RUST_LOG ?= INFO
 RUST_DEBUG_LOG ?= DEBUG
-# Phoenix CI Variables
-SERVICE := yars
-VERSION := 0.0.0
 
 all: build test
 
