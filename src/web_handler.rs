@@ -44,7 +44,7 @@ fn get_opts() -> OptsBuilder {
         .pass(Some(db_pass))
         .db_name(Some("yars"))
         .tcp_port(db_port)
-        .ip_or_hostname(Some("[::1]"));
+        .ip_or_hostname(Some("127.0.0.1"));
 
     builder
 }
@@ -55,9 +55,19 @@ pub async fn initial_load() -> HttpResult<impl Reply> {
     let posts = get_posts().await;
     let headliner_id = posts[0].post_id.clone();
     let headliner = get_single_post(headliner_id).await;
-    let return_data = InitialLoadReturn{
-        initial_posts: vec![posts[0].clone(), posts[1].clone()], headliner
+    let return_data = if posts.len() > 1 {
+        InitialLoadReturn {
+            initial_posts: vec![posts[0].clone(), posts[1].clone()],
+            headliner
+        }
+    }
+    else {
+        InitialLoadReturn{
+            initial_posts: vec![posts[0].clone()],
+            headliner
+        }
     };
+    info!("{:?}", &return_data);
     Ok(with_status(json(&return_data), StatusCode::OK))
 }
 
