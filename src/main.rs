@@ -41,7 +41,7 @@ fn setup_logging() -> std::result::Result<(), Box<dyn Error>> {
 }
 
 async fn start_server(args: Args) -> std::result::Result<(), Box<dyn Error>> {
-    let root_path = warp::path::end()
+    let root_path = warp::path("init")
         .and(warp::get())
         .and_then(web_handler::initial_load);
 

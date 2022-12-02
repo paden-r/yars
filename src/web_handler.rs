@@ -13,23 +13,27 @@ type HttpResult<T> = std::result::Result<T, Rejection>;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Clone)]
 struct Post {
-    post_id: u8,
+    post_id: u16,
     create_date: String,
-    title: String
+    title: String,
+    summary: String,
+    ranking: String
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Clone)]
 struct PostBody {
-    post_id: u8,
+    post_id: u16,
     create_date: String,
     title: String,
-    bodytext: String
+    ranking: String,
+    summary: String,
+    bodytext: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
 struct InitialLoadReturn {
     initial_posts: Vec<Post>,
-    headliner: PostBody
+    headliner: PostBody,
 }
 
 
@@ -58,13 +62,12 @@ pub async fn initial_load() -> HttpResult<impl Reply> {
     let return_data = if posts.len() > 1 {
         InitialLoadReturn {
             initial_posts: vec![posts[0].clone(), posts[1].clone()],
-            headliner
+            headliner,
         }
-    }
-    else {
-        InitialLoadReturn{
+    } else {
+        InitialLoadReturn {
             initial_posts: vec![posts[0].clone()],
-            headliner
+            headliner,
         }
     };
     info!("{:?}", &return_data);
@@ -77,24 +80,24 @@ async fn get_posts() -> Vec<Post> {
     let selected_posts = connection
         .query_map(
             "CALL GetPosts();",
-        |(post_id, create_date, title)|{
-            Post{post_id, create_date, title}
-        },
+            |(post_id, create_date, title)| {
+                Post { post_id, create_date, title }
+            },
         ).unwrap();
 
     selected_posts
 }
 
 
-async fn get_single_post(post_id: u8) -> PostBody {
+async fn get_single_post(post_id: u16) -> PostBody {
     let mut connection = Conn::new(get_opts()).unwrap();
     let sql_statement = format!("CALL GetPostBody({});", post_id);
     let mut single_post = connection
         .query_map(
             sql_statement,
-        |(post_id, create_date, title, bodytext)|{
-            PostBody{post_id, create_date, title, bodytext}
-        },
+            |(post_id, create_date, title, bodytext)| {
+                PostBody { post_id, create_date, title, bodytext }
+            },
         ).unwrap();
 
     single_post.pop().unwrap()
