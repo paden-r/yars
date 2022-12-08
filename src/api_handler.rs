@@ -15,9 +15,9 @@ type HttpResult<T> = std::result::Result<T, Rejection>;
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize)]
 pub struct AddPostBody {
     title: String,
+    post_body: String,
     ranking: String,
     summary: String,
-    bodytext: String,
 }
 
 
@@ -29,7 +29,7 @@ pub async fn add_post(request_id: String, post_body: AddPostBody) -> HttpResult<
     info!("Now: {}", Utc::now().naive_utc());
     let mut connection = Conn::new(get_opts()).unwrap();
     let sql_statement = format!(
-        "CALL CreatePost({}, {}, {}, {});", post_body.title, post_body.bodytext, post_body.summary, post_body.ranking
+        "CALL CreatePost('{}', '{}', '{}', '{}');", post_body.title, post_body.post_body, post_body.summary, post_body.ranking
     );
     connection.query_drop(sql_statement).unwrap();
     Ok(StatusCode::OK)

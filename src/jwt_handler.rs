@@ -11,9 +11,8 @@ const BEARER: &str = "Bearer ";
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Claims {
-    sub: String,
-    role: String,
     exp: usize,
+    iss: usize
 }
 
 pub fn with_jwt() -> impl Filter<Extract = (String,), Error = Rejection> + Clone {
@@ -34,7 +33,7 @@ async fn authorize(headers: HeaderMap<HeaderValue>) -> WebResult<String> {
             )
             .map_err(|_| reject::custom(Error::JWTTokenError))?;
 
-            Ok(decoded.claims.sub)
+            Ok(decoded.claims.iss.to_string())
         }
         Err(e) => return Err(reject::custom(e)),
     }
