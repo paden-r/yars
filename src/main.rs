@@ -4,11 +4,13 @@ use clap::Parser;
 use env_logger::Env;
 use warp::{Filter, Rejection};
 use crate::jwt_handler::with_jwt;
-use crate::web_handler::add_json_body;
+use crate::api_handler::add_json_body;
 
 mod web_handler;
 mod jwt_handler;
+mod api_handler;
 mod errors;
+mod utilities;
 
 type Result<T> = std::result::Result<T, errors::Error>;
 type WebResult<T> = std::result::Result<T, Rejection>;
@@ -57,7 +59,7 @@ async fn start_server(args: Args) {
         .and(warp::post())
         .and(with_jwt())
         .and(add_json_body())
-        .and_then(web_handler::add_post);
+        .and_then(api_handler::add_post);
 
 
     let routes = index

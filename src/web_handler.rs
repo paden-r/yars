@@ -5,7 +5,7 @@ use warp::http::StatusCode;
 use mysql::*;
 use mysql::prelude::Queryable;
 use serde::{Serialize, Deserialize};
-
+use crate::utilities::get_opts;
 use warp::{Rejection, Filter};
 use warp::reply::{json, with_status};
 
@@ -38,37 +38,6 @@ struct InitialLoadReturn {
 }
 
 
-#[derive(Debug, PartialEq, Eq, Clone, Deserialize)]
-pub struct AddPostBody {
-    title: String,
-    ranking: String,
-    summary: String,
-    bodytext: String,
-}
-
-
-pub fn add_json_body() -> impl Filter<Extract = (AddPostBody,), Error = Rejection> + Clone {
-    warp::body::json()
-}
-
-
-fn get_opts() -> OptsBuilder {
-    let db_user = std::env::var("DB_USER").unwrap();
-    let db_pass = std::env::var("DB_PASS").unwrap();
-    let db_port_string = std::env::var("DB_PORT").unwrap();
-    let db_port: u16 = db_port_string.parse().unwrap();
-
-    let mut builder = OptsBuilder::new();
-    builder = builder.user(Some(db_user))
-        .pass(Some(db_pass))
-        .db_name(Some("yars"))
-        .tcp_port(db_port)
-        .ip_or_hostname(Some("127.0.0.1"));
-
-    builder
-}
-
-
 pub async fn initial_load() -> HttpResult<impl Reply> {
     info!("Now: {}", Utc::now().naive_utc());
     let posts = get_posts().await;
@@ -89,14 +58,6 @@ pub async fn initial_load() -> HttpResult<impl Reply> {
     Ok(with_status(json(&return_data), StatusCode::OK))
 }
 
-pub async fn add_post(request_id: String, post_body: AddPostBody) -> HttpResult<impl Reply> {
-    info!("Now: {}", Utc::now().naive_utc());
-    // let mut connection = Conn::new(get_opts()).unwrap();
-    // let sql_statement = format!("CALL CreatePost({});", post_id);
-    Ok(StatusCode::OK)
-}
-
-
 async fn get_posts() -> Vec<Post> {
     let mut connection = Conn::new(get_opts()).unwrap();
     let selected_posts = connection
@@ -109,7 +70,6 @@ async fn get_posts() -> Vec<Post> {
 
     selected_posts
 }
-
 
 async fn get_single_post(post_id: u16) -> PostBody {
     let mut connection = Conn::new(get_opts()).unwrap();
