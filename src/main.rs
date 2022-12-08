@@ -1,11 +1,17 @@
 use std::env;
 use log::info;
-use warp::Filter;
-use std::error::Error;
 use clap::Parser;
 use env_logger::Env;
+use warp::{Filter, Rejection};
+use crate::jwt_handler::with_jwt;
+use crate::web_handler::add_json_body;
 
 mod web_handler;
+mod jwt_handler;
+mod errors;
+
+type Result<T> = std::result::Result<T, errors::Error>;
+type WebResult<T> = std::result::Result<T, Rejection>;
 
 
 #[derive(Parser, Debug)]
@@ -17,15 +23,14 @@ struct Args {
 
 
 #[tokio::main]
-async fn main() -> std::result::Result<(), Box<dyn Error>> {
-    setup_logging()?;
+async fn main() {
+    setup_logging();
     let args = Args::parse();
-    start_server(args).await?;
-    Ok(())
+    start_server(args).await;
 }
 
 
-fn setup_logging() -> std::result::Result<(), Box<dyn Error>> {
+fn setup_logging() {
     let mut logger = env_logger::Builder::from_env(Env::default().default_filter_or("info"));
     logger.target(env_logger::Target::Stdout);
     logger.init();
@@ -37,25 +42,28 @@ fn setup_logging() -> std::result::Result<(), Box<dyn Error>> {
             info!("Log Level: INFO")
         }
     }
-    Ok(())
 }
 
-async fn start_server(args: Args) -> std::result::Result<(), Box<dyn Error>> {
-    let root_path = warp::path("init")
+async fn start_server(args: Args) {
+    let index = warp::path::end()
         .and(warp::get())
         .and_then(web_handler::initial_load);
 
-    // let status_route = warp::path("posts").and_then(status::status_handler);
-    // let catchall_route = warp::any()
-    //     .and(warp::path::full())
-    //     .and(warp::method())
-    //     .and_then(handler::unhandled);
+    // let list_posts = warp::path("posts")
+    //     .and(warp::get())
+    //     .and_then(status::status_handler);
 
-    let routes = root_path
-        // .or(status_route)
+    let add = warp::path("add")
+        .and(warp::post())
+        .and(with_jwt())
+        .and(add_json_body())
+        .and_then(web_handler::add_post);
+
+
+    let routes = index
+        .or(add)
         // .or(catchall_route)
         .with(warp::cors().allow_any_origin());
 
     warp::serve(routes).run(([0, 0, 0, 0], args.port)).await;
-    Ok(())
 }

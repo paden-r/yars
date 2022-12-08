@@ -4,12 +4,13 @@ use warp::Reply;
 use warp::http::StatusCode;
 use mysql::*;
 use mysql::prelude::Queryable;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
-use warp::Rejection;
+use warp::{Rejection, Filter};
 use warp::reply::{json, with_status};
 
 type HttpResult<T> = std::result::Result<T, Rejection>;
+
 
 #[derive(Debug, PartialEq, Eq, Serialize, Clone)]
 struct Post {
@@ -20,7 +21,7 @@ struct Post {
     ranking: String
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Clone, Deserialize)]
 struct PostBody {
     post_id: u16,
     create_date: String,
@@ -34,6 +35,20 @@ struct PostBody {
 struct InitialLoadReturn {
     initial_posts: Vec<Post>,
     headliner: PostBody,
+}
+
+
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize)]
+pub struct AddPostBody {
+    title: String,
+    ranking: String,
+    summary: String,
+    bodytext: String,
+}
+
+
+pub fn add_json_body() -> impl Filter<Extract = (AddPostBody,), Error = Rejection> + Clone {
+    warp::body::json()
 }
 
 
@@ -74,14 +89,21 @@ pub async fn initial_load() -> HttpResult<impl Reply> {
     Ok(with_status(json(&return_data), StatusCode::OK))
 }
 
+pub async fn add_post(request_id: String, post_body: AddPostBody) -> HttpResult<impl Reply> {
+    info!("Now: {}", Utc::now().naive_utc());
+    // let mut connection = Conn::new(get_opts()).unwrap();
+    // let sql_statement = format!("CALL CreatePost({});", post_id);
+    Ok(StatusCode::OK)
+}
+
 
 async fn get_posts() -> Vec<Post> {
     let mut connection = Conn::new(get_opts()).unwrap();
     let selected_posts = connection
         .query_map(
             "CALL GetPosts();",
-            |(post_id, create_date, title)| {
-                Post { post_id, create_date, title }
+            |(post_id, create_date, title, summary, ranking)| {
+                Post { post_id, create_date, title, summary, ranking}
             },
         ).unwrap();
 
@@ -95,8 +117,8 @@ async fn get_single_post(post_id: u16) -> PostBody {
     let mut single_post = connection
         .query_map(
             sql_statement,
-            |(post_id, create_date, title, bodytext)| {
-                PostBody { post_id, create_date, title, bodytext }
+            |(post_id, create_date, title, summary, ranking, bodytext)| {
+                PostBody { post_id, create_date, title, summary, ranking, bodytext }
             },
         ).unwrap();
 
