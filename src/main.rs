@@ -51,9 +51,9 @@ async fn start_server(args: Args) {
         .and(warp::get())
         .and_then(web_handler::initial_load);
 
-    // let list_posts = warp::path("posts")
-    //     .and(warp::get())
-    //     .and_then(status::status_handler);
+    let list_posts = warp::path("posts")
+        .and(warp::get())
+        .and_then(web_handler::get_post_list);
 
     let add = warp::path("add")
         .and(warp::post())
@@ -64,6 +64,7 @@ async fn start_server(args: Args) {
 
     let routes = index
         .or(add)
+        .or(list_posts)
         // .or(catchall_route)
         .with(warp::cors().allow_any_origin());
 

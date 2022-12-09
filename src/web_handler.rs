@@ -12,7 +12,7 @@ use warp::reply::{json, with_status};
 type HttpResult<T> = std::result::Result<T, Rejection>;
 
 
-#[derive(Debug, PartialEq, Eq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Clone, Deserialize)]
 struct Post {
     post_id: u16,
     create_date: String,
@@ -39,7 +39,7 @@ struct InitialLoadReturn {
 
 
 pub async fn initial_load() -> HttpResult<impl Reply> {
-    info!("Now: {}", Utc::now().naive_utc());
+    info!("Index load::Now: {}", Utc::now().naive_utc());
     let posts = get_posts().await;
     let headliner_id = posts[0].post_id.clone();
     let headliner = get_single_post(headliner_id).await;
@@ -56,6 +56,12 @@ pub async fn initial_load() -> HttpResult<impl Reply> {
     };
     info!("{:?}", &return_data);
     Ok(with_status(json(&return_data), StatusCode::OK))
+}
+
+pub async fn get_post_list() -> HttpResult<impl Reply> {
+    info!("Getting post list::Now: {}", Utc::now().naive_utc());
+    let posts = get_posts().await;
+    Ok(with_status(json(&posts), StatusCode::OK))
 }
 
 async fn get_posts() -> Vec<Post> {
