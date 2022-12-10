@@ -5,6 +5,7 @@ use env_logger::Env;
 use warp::{Filter, Rejection};
 use crate::jwt_handler::with_jwt;
 use crate::api_handler::add_json_body;
+use crate::web_handler::get_post;
 
 mod web_handler;
 mod jwt_handler;
@@ -55,6 +56,11 @@ async fn start_server(args: Args) {
         .and(warp::get())
         .and_then(web_handler::get_post_list);
 
+    let single_post = warp::path!("posts" / u16)
+        .and(warp::get())
+        .and_then(web_handler::get_post);
+
+
     let add = warp::path("add")
         .and(warp::post())
         .and(with_jwt())
@@ -64,6 +70,7 @@ async fn start_server(args: Args) {
 
     let routes = index
         .or(add)
+        .or(single_post)
         .or(list_posts)
         // .or(catchall_route)
         .with(warp::cors().allow_any_origin());

@@ -77,6 +77,12 @@ async fn get_posts() -> Vec<Post> {
     selected_posts
 }
 
+pub async fn get_post(post_id: u16) -> HttpResult<impl Reply> {
+    info!("Getting post id: {}::Now: {}", post_id, Utc::now().naive_utc());
+    let post = get_single_post(post_id).await;
+    Ok(with_status(json(&post), StatusCode::OK))
+}
+
 async fn get_single_post(post_id: u16) -> PostBody {
     let mut connection = Conn::new(get_opts()).unwrap();
     let sql_statement = format!("CALL GetPostBody({});", post_id);

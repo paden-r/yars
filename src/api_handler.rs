@@ -28,7 +28,7 @@ pub fn add_json_body() -> impl Filter<Extract=(AddPostBody, ), Error=Rejection> 
 }
 
 pub async fn add_post(request_id: String, post_body: AddPostBody) -> HttpResult<impl Reply> {
-    info!("Now: {}", Utc::now().naive_utc());
+    info!("Now: {}: {}", Utc::now().naive_utc(), request_id);
     let mut connection = Conn::new(get_opts()).unwrap();
     let bodytext_bytes = base64::decode(&post_body.post_body).unwrap();
     let bodytext = str::from_utf8(&bodytext_bytes).unwrap().to_owned();

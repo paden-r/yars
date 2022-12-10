@@ -1,5 +1,7 @@
 use crate::{errors::Error, Result, WebResult};
+use chrono::{TimeZone, Utc};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+use log::{info, error};
 use serde::{Deserialize, Serialize};
 use warp::{
     filters::header::headers_cloned,
@@ -11,8 +13,9 @@ const BEARER: &str = "Bearer ";
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Claims {
+    iss: usize,
     exp: usize,
-    iss: usize
+    sub: String
 }
 
 pub fn with_jwt() -> impl Filter<Extract = (String,), Error = Rejection> + Clone {
@@ -31,9 +34,12 @@ async fn authorize(headers: HeaderMap<HeaderValue>) -> WebResult<String> {
                 &DecodingKey::from_secret(jwt_secret),
                 &Validation::new(Algorithm::HS512),
             )
-            .map_err(|_| reject::custom(Error::JWTTokenError))?;
+            .map_err(|e| {
+                error!("{:?}", e);
+                reject::custom(Error::JWTTokenError)
+            })?;
 
-            Ok(decoded.claims.iss.to_string())
+            Ok(decoded.claims.sub)
         }
         Err(e) => return Err(reject::custom(e)),
     }
