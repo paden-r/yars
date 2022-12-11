@@ -1,7 +1,6 @@
 use crate::{errors::Error, Result, WebResult};
-use chrono::{TimeZone, Utc};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
-use log::{info, error};
+use log::error;
 use serde::{Deserialize, Serialize};
 use warp::{
     filters::header::headers_cloned,
@@ -18,10 +17,24 @@ struct Claims {
     sub: String
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+struct DeleteClaims {
+    iss: usize,
+    exp: usize,
+    sub: String,
+    delete_id: u16
+}
+
 pub fn with_jwt() -> impl Filter<Extract = (String,), Error = Rejection> + Clone {
     headers_cloned()
         .map(move |headers: HeaderMap<HeaderValue>| (headers))
         .and_then(authorize)
+}
+
+pub fn with_jwt_delete() -> impl Filter<Extract = (u16,), Error = Rejection> + Clone {
+    headers_cloned()
+        .map(move |headers: HeaderMap<HeaderValue>| (headers))
+        .and_then(authorize_delete)
 }
 
 async fn authorize(headers: HeaderMap<HeaderValue>) -> WebResult<String> {
@@ -40,6 +53,28 @@ async fn authorize(headers: HeaderMap<HeaderValue>) -> WebResult<String> {
             })?;
 
             Ok(decoded.claims.sub)
+        }
+        Err(e) => return Err(reject::custom(e)),
+    }
+}
+
+
+async fn authorize_delete(headers: HeaderMap<HeaderValue>) -> WebResult<u16> {
+    let jwt_secret_string = std::env::var("JWT_SECRET").unwrap();
+    let jwt_secret = jwt_secret_string.as_bytes();
+    match jwt_from_header(&headers) {
+        Ok(jwt) => {
+            let decoded = decode::<DeleteClaims>(
+                &jwt,
+                &DecodingKey::from_secret(jwt_secret),
+                &Validation::new(Algorithm::HS512),
+            )
+            .map_err(|e| {
+                error!("{:?}", e);
+                reject::custom(Error::JWTTokenError)
+            })?;
+
+            Ok(decoded.claims.delete_id)
         }
         Err(e) => return Err(reject::custom(e)),
     }

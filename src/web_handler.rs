@@ -6,7 +6,7 @@ use mysql::*;
 use mysql::prelude::Queryable;
 use serde::{Serialize, Deserialize};
 use crate::utilities::get_opts;
-use warp::{Rejection, Filter};
+use warp::Rejection;
 use warp::reply::{json, with_status};
 
 type HttpResult<T> = std::result::Result<T, Rejection>;

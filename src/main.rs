@@ -3,9 +3,8 @@ use log::info;
 use clap::Parser;
 use env_logger::Env;
 use warp::{Filter, Rejection};
-use crate::jwt_handler::with_jwt;
+use crate::jwt_handler::{with_jwt, with_jwt_delete};
 use crate::api_handler::add_json_body;
-use crate::web_handler::get_post;
 
 mod web_handler;
 mod jwt_handler;
@@ -67,12 +66,18 @@ async fn start_server(args: Args) {
         .and(add_json_body())
         .and_then(api_handler::add_post);
 
+    let delete = warp::path!("delete" / u16)
+        .and(warp::delete())
+        .and(with_jwt_delete())
+        .and_then(api_handler::delete_post);
+
 
     let routes = index
         .or(add)
         .or(single_post)
         .or(list_posts)
-        // .or(catchall_route)
+        .or(delete)
+        .recover(errors::handle_rejection)
         .with(warp::cors().allow_any_origin());
 
     warp::serve(routes).run(([0, 0, 0, 0], args.port)).await;

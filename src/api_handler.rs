@@ -4,10 +4,10 @@ use warp::Reply;
 use warp::http::StatusCode;
 use mysql::*;
 use mysql::prelude::Queryable;
-use serde::{Serialize, Deserialize};
+use serde::Deserialize;
 use crate::utilities::get_opts;
 use warp::{Rejection, Filter};
-use warp::reply::{json, with_status};
+use warp::reply::with_status;
 use base64;
 use std::str;
 
@@ -28,7 +28,7 @@ pub fn add_json_body() -> impl Filter<Extract=(AddPostBody, ), Error=Rejection> 
 }
 
 pub async fn add_post(request_id: String, post_body: AddPostBody) -> HttpResult<impl Reply> {
-    info!("Now: {}: {}", Utc::now().naive_utc(), request_id);
+    info!("Add Post::Now: {}: {}", Utc::now().naive_utc(), request_id);
     let mut connection = Conn::new(get_opts()).unwrap();
     let bodytext_bytes = base64::decode(&post_body.post_body).unwrap();
     let bodytext = str::from_utf8(&bodytext_bytes).unwrap().to_owned();
@@ -40,5 +40,20 @@ pub async fn add_post(request_id: String, post_body: AddPostBody) -> HttpResult<
         post_body.ranking.replace("'", "''")
     );
     connection.query_drop(sql_statement).unwrap();
-    Ok(StatusCode::OK)
+    Ok(with_status("Ok", StatusCode::OK))
+}
+
+pub async fn delete_post(path_id: u16, claim_id: u16) -> HttpResult<impl Reply> {
+    // info!("Now: {}: {}", Utc::now().naive_utc(), request_id);
+    info!("Delete Post::submitted: {}, claim: {}", path_id, claim_id);
+    if path_id != claim_id {
+        return Ok(with_status("Bad Request", StatusCode::BAD_REQUEST))
+    }
+    let mut connection = Conn::new(get_opts()).unwrap();
+    let sql_statement = format!(
+        "CALL DeletePost({});",
+        claim_id
+    );
+    connection.query_drop(sql_statement).unwrap();
+    Ok(with_status("Ok", StatusCode::OK))
 }
